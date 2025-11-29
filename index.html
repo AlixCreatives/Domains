@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CustomDomainBuilder | Dashboard</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Utilities */
+        .hidden { display: none !important; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-4 { gap: 1rem; }
+        .w-full { width: 100%; }
+        .h-full { height: 100%; }
+        .mt-4 { margin-top: 1rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .text-sm { font-size: 0.875rem; }
+        .text-xs { font-size: 0.75rem; }
+        .font-bold { font-weight: 700; }
+        .text-success { color: var(--success); }
+        .text-muted { color: var(--text-muted); }
+
+        /* Buttons & Inputs */
+        button, input, select, textarea {
+            font-family: inherit;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            outline: none;
+        }
+        
+        button {
+            cursor: pointer;
+            padding: 0.6rem 1.2rem;
+            background-color: var(--bg-card);
+            color: var(--text-main);
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        button:hover { background-color: var(--border); }
+        button.primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+        button.primary:hover { background-color: var(--primary-hover); }
+        
+        input, textarea {
+            background-color: #020617;
+            color: white;
+            padding: 0.8rem;
+            width: 100%;
+        }
+        input:focus, textarea:focus { border-color: var(--primary); }
+
+        /* Login Screen */
+        #login-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-dark);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-box {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        .brand-logo { font-size: 1.5rem; font-weight: 800; margin-bottom: 1.5rem; color: var(--text-main); }
+        .brand-logo span { color: var(--primary); }
+
+        /* Main App Layout */
+        #app-container {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Sidebar */
+        aside {
+            width: 250px;
+            background-color: var(--bg-card);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+        }
+        .nav-item {
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .nav-item:hover, .nav-item.active {
+            background-color: rgba(59, 130, 246, 0.1);
+            color: var(--primary);
+        }
+        .user-info {
+            margin-top: auto;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.8rem;
+        }
+
+        /* Main Content */
+        main {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* File List */
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem;
+            background: rgba(0,0,0,0.2);
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid transparent;
+        }
+        .file-item:hover { border-color: var(--border); }
+
+        /* Editor Modal */
+        #editor-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 40;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .editor-content {
+            width: 90%; height: 90%;
+            background: var(--bg-dark);
+            display: flex;
+            flex-direction: column;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        .editor-header {
+            padding: 1rem;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+        }
+        #code-area {
+            flex: 1;
+            background: #0d1117;
+            color: #c9d1d9;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 1rem;
+            border: none;
+            resize: none;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Publish Logs */
+        .terminal {
+            background: #000;
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: monospace;
+            height: 200px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            border: 1px solid #333;
+        }
+        .log-line { margin-bottom: 0.25rem; }
+        .log-success { color: var(--success); }
+        .log-warn { color: #facc15; }
+
+        /* Preview Area */
+        .preview-frame-container {
+            width: 100%;
+            height: 600px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+        iframe { width: 100%; height: 100%; border: none; flex: 1; background: #fff; }
+        .url-bar {
+            background: #f1f5f9;
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            color: #334155;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .fake-dot { width: 10px; height: 10px; border-radius: 50%; background: #cbd5e1; }
+        .fake-dot.red { background: #ef4444; }
+        .fake-dot.yellow { background: #f59e0b; }
+        .fake-dot.green { background: #10b981; }
+
+        /* DNS Table */
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { text-align: left; padding: 0.8rem; border-bottom: 1px solid var(--border); }
+        th { color: var(--text-muted); font-weight: 500; font-size: 0.85rem; }
+        td { font-family: monospace; color: var(--primary); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            #app-container { flex-direction: column; }
+            aside {
+                width: 100%;
+                flex-direction: row;
+                overflow-x: auto;
+                padding: 0.5rem;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+            .nav-item { margin: 0 0.5rem 0 0; white-space: nowrap; }
+            .user-info { display: none; }
+            main { padding: 1rem; }
+            .preview-frame-container { height: 500px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="login-box">
+            <div class="brand-logo">Custom<span>Domain</span>Builder</div>
+            <p class="text-muted mb-4">Enter your access code to continue</p>
+            <input type="number" id="access-code-input" placeholder="e.g. 5678" class="mb-4">
+            <button class="primary w-full" onclick="handleLogin()">Access Dashboard</button>
+            <p class="text-xs text-muted mt-4">New code = New Account. Existing = Load Data.</p>
+        </div>
+    </div>
+
+    <div id="app-container" class="hidden">
+        
+        <aside>
+            <div class="brand-logo text-sm mb-4 hidden-mobile">Custom<span>Domain</span>Builder</div>
+            
+            <div class="nav-item active" onclick="showView('dashboard')">
+                <span>📊</span> Dashboard
+            </div>
+            <div class="nav-item" onclick="showView('files')">
+                <span>📁</span> Files & Editor
+            </div>
+            <div class="nav-item" onclick="showView('domain')">
+                <span>🌐</span> Domain Setup
+            </div>
+            <div class="nav-item" onclick="showView('deploy')">
+                <span>🚀</span> Publish
+            </div>
+            <div class="nav-item" onclick="showView('preview')">
+                <span>👁️</span> Live Preview
+            </div>
+
+            <div class="user-info">
+                <div class="text-muted text-xs">Logged in as:</div>
+                <div class="font-bold" id="user-display">Code: ----</div>
+                <button onclick="logout()" class="w-full mt-4 text-xs">Logout</button>
+            </div>
+        </aside>
+
+        <main>
+            
+            <div id="view-dashboard" class="view-section">
+                <h1 class="mb-4">Project Overview</h1>
+                
+                <div class="card">
+                    <h3 class="mb-4">Deployment Status</h3>
+                    <div class="flex items-center gap-4">
+                        <div id="status-indicator" class="fake-dot red" style="width:16px; height:16px;"></div>
+                        <div>
+                            <div id="status-text" class="font-bold">Not Deployed</div>
+                            <div id="live-url-display" class="text-sm text-muted">No URL generated</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="mb-4">Quick Actions</h3>
+                    <div class="flex gap-4" style="flex-wrap: wrap;">
+                        <button onclick="showView('files')">Upload/Edit Files</button>
+                        <button onclick="showView('domain')">Connect Domain</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="mb-4">Source Mode</h3>
+                    <select id="source-mode" onchange="updateSourceMode()">
+                        <option value="upload">Custom Files (HTML/CSS/JS)</option>
+                        <option value="url">Import Existing URL</option>
+                    </select>
+                    
+                    <div id="url-input-container" class="mt-4 hidden">
+                        <p class="text-sm text-muted mb-2">Paste URL to frame (Note: Many sites block iframes):</p>
+                        <input type="text" id="import-url" placeholder="https://example.com" onblur="saveImportUrl()">
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-files" class="view-section hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h1>File Manager</h1>
+                    <div>
+                        <input type="file" id="file-uploader" class="hidden" multiple onchange="handleFileUpload(this)">
+                        <button class="primary" onclick="document.getElementById('file-uploader').click()">+ Upload File</button>
+                        <button onclick="createNewFile()">+ New File</button>
+                    </div>
+                </div>
+
+                <div class="card" id="file-list-container">
+                    <p class="text-muted text-center py-4">No files uploaded yet. Start by creating 'index.html'.</p>
+                </div>
+                
+                <div class="text-xs text-muted">Supported: HTML, CSS, JS, TXT. Files are saved locally.</div>
+            </div>
+
+            <div id="view-domain" class="view-section hidden">
+                <h1 class="mb-4">Domain Management</h1>
+                
+                <div class="card">
+                    <h3 class="mb-4">Custom Domain</h3>
+                    <div class="flex gap-2">
+                        <input type="text" id="custom-domain-input" placeholder="myshop.com">
+                        <button class="primary" onclick="saveDomain()">Save</button>
+                    </div>
+                    <p class="text-xs text-muted mt-2">Enter a .com, .net, or .org domain.</p>
+                </div>
+
+                <div class="card hidden" id="dns-settings">
+                    <h3 class="mb-4 text-success">✔ Domain Configuration Required</h3>
+                    <p class="text-sm text-muted mb-4">Please add the following records to your DNS provider.</p>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Name</th>
+                                <th>Content</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>A</td>
+                                <td>@</td>
+                                <td>76.76.21.21</td>
+                            </tr>
+                            <tr>
+                                <td>CNAME</td>
+                                <td>www</td>
+                                <td>cname.customdomainbuilder.com</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view-deploy" class="view-section hidden">
+                <h1 class="mb-4">Publish Website</h1>
+                
+                <div class="card">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3>Build Logs</h3>
+                        <button class="primary" id="deploy-btn" onclick="startDeployment()">Deploy Now</button>
+                    </div>
+                    
+                    <div class="terminal" id="deploy-logs">
+                        <div class="log-line text-muted">> Waiting for deployment...</div>
+                    </div>
+                </div>
+
+                <div id="deploy-success" class="card hidden" style="border-color: var(--success);">
+                    <h3 class="text-success mb-2">🚀 Deployment Complete!</h3>
+                    <p>Your site is live at:</p>
+                    <a href="#" onclick="showView('preview'); return false;" id="final-url-link" class="font-bold text-lg" style="color: var(--primary);">...</a>
+                </div>
+            </div>
+
+            <div id="view-preview" class="view-section hidden">
+                <h1 class="mb-4">Live Preview</h1>
+                
+                <div class="preview-frame-container">
+                    <div class="url-bar">
+                        <div class="flex gap-1">
+                            <div class="fake-dot red"></div>
+                            <div class="fake-dot yellow"></div>
+                            <div class="fake-dot green"></div>
+                        </div>
+                        <div class="flex-1 text-center font-bold" id="preview-url-bar" style="font-size: 0.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">https://preview.customdomainbuilder.com</div>
+                        <button onclick="loadPreview()" class="text-xs" style="padding: 2px 6px;">↻</button>
+                    </div>
+                    <iframe id="site-preview-iframe" sandbox="allow-scripts allow-modals allow-same-origin"></iframe>
+                </div>
+                
+                <div class="mt-4 text-center">
+                    <p class="text-sm text-muted">Internal Preview Link:</p>
+                    <code id="internal-preview-link" class="text-primary">...</code>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <div id="editor-modal" class="hidden">
+        <div class="editor-content">
+            <div class="editor-header">
+                <span class="font-bold" id="editor-filename">filename.html</span>
+                <div class="flex gap-2">
+                    <button onclick="closeEditor()">Cancel</button>
+                    <button class="primary" onclick="saveFileContent()">Save Changes</button>
+                </div>
+            </div>
+            <textarea id="code-area"></textarea>
+        </div>
+    </div>
+
+    <script>
+        // --- STATE MANAGEMENT ---
+        let currentUser = null;
+        let userData = {
+            code: '',
+            domain: '',
+            mode: 'upload', // 'upload' or 'url'
+            importUrl: '',
+            files: [], // Array of { name, content, type }
+            isPublished: false
+        };
+
+        // --- AUTHENTICATION ---
+        function handleLogin() {
+            const code = document.getElementById('access-code-input').value;
+            if (!code) return alert("Please enter a code");
+
+            const storedData = localStorage.getItem('CDB_User_' + code);
+            
+            if (storedData) {
+                userData = JSON.parse(storedData);
+            } else {
+                // New User Initialization
+                userData = {
+                    code: code,
+                    domain: '',
+                    mode: 'upload',
+                    importUrl: '',
+                    files: [
+                        { name: 'index.html', content: '<div style="font-family:sans-serif; text-align:center; padding:50px;">\n<h1 style="color:#3b82f6;">Welcome to My Site</h1>\n<p>This is a simulated website hosted on CustomDomainBuilder.</p>\n<hr style="margin:20px 0;">\n<button style="padding:10px 20px; background:#333; color:white; border:none; border-radius:5px;">Click Me</button>\n</div>', type: 'text/html' },
+                        { name: 'style.css', content: 'body { margin: 0; background: #f0f9ff; }', type: 'text/css' }
+                    ],
+                    isPublished: false
+                };
+                saveData();
+            }
+
+            currentUser = code;
+            document.getElementById('user-display').innerText = `Code: ${code}`;
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('hidden');
+            
+            loadDashboard();
+        }
+
+        function logout() {
+            location.reload();
+        }
+
+        function saveData() {
+            if (currentUser) {
+                localStorage.setItem('CDB_User_' + currentUser, JSON.stringify(userData));
+                updateUI();
+            }
+        }
+
+        // --- NAVIGATION ---
+        function showView(viewId) {
+            // Hide all views
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
+            // Show target
+            document.getElementById('view-' + viewId).classList.remove('hidden');
+            
+            // Highlight nav
+            const navIndex = ['dashboard', 'files', 'domain', 'deploy', 'preview'].indexOf(viewId);
+            if(navIndex >= 0) {
+                document.querySelectorAll('.nav-item')[navIndex].classList.add('active');
+            }
+
+            // Special Refresh logic
+            if (viewId === 'files') renderFileList();
+            if (viewId === 'preview') loadPreview();
+        }
+
+        function loadDashboard() {
+            updateUI();
+            showView('dashboard');
+        }
+
+        function updateUI() {
+            // Status Logic
+            const statusDot = document.getElementById('status-indicator');
+            const statusText = document.getElementById('status-text');
+            const urlDisplay = document.getElementById('live-url-display');
+
+            const hasDomain = userData.domain && userData.domain.length > 0;
+            const displayUrl = hasDomain ? `https://www.${userData.domain}` : `https://site-${userData.code}.customdb.com`;
+
+            if (userData.isPublished) {
+                statusDot.className = "fake-dot green";
+                statusText.innerText = "Production: Live";
+                urlDisplay.innerText = displayUrl;
+                document.getElementById('final-url-link').innerText = displayUrl;
+                document.getElementById('final-url-link').href = "#"; // Fake link
+                document.getElementById('deploy-success').classList.remove('hidden');
+            } else {
+                statusDot.className = "fake-dot red";
+                statusText.innerText = "Not Deployed";
+                urlDisplay.innerText = "No URL generated";
+                document.getElementById('deploy-success').classList.add('hidden');
+            }
+
+            // Mode Logic
+            document.getElementById('source-mode').value = userData.mode;
+            if (userData.mode === 'url') {
+                document.getElementById('url-input-container').classList.remove('hidden');
+                document.getElementById('import-url').value = userData.importUrl;
+            } else {
+                document.getElementById('url-input-container').classList.add('hidden');
+            }
+
+            // Domain Logic
+            document.getElementById('custom-domain-input').value = userData.domain;
+            if (userData.domain) {
+                document.getElementById('dns-settings').classList.remove('hidden');
+            }
+
+            // Internal Preview
+            document.getElementById('internal-preview-link').innerText = `https://preview.customdomainbuilder.com/u/${userData.code}`;
+        }
+
+        // --- WEBSITE BUILDER LOGIC ---
+
+        function updateSourceMode() {
+            userData.mode = document.getElementById('source-mode').value;
+            saveData();
+        }
+
+        function saveImportUrl() {
+            userData.importUrl = document.getElementById('import-url').value;
+            saveData();
+        }
+
+        // File Manager
+        function renderFileList() {
+            const container = document.getElementById('file-list-container');
+            container.innerHTML = '';
+
+            if (userData.files.length === 0) {
+                container.innerHTML = `<p class="text-muted text-center py-4">No files.</p>`;
+                return;
+            }
+
+            userData.files.forEach((file, index) => {
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="text-primary">📄</span>
+                        <strong style="font-size:0.9rem">${file.name}</strong>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="text-xs" onclick="openEditor(${index})">Edit</button>
+                        <button class="text-xs" onclick="deleteFile(${index})" style="color:#ef4444; border-color:#ef4444;">Del</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function handleFileUpload(input) {
+            const files = Array.from(input.files);
+            
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const content = e.target.result;
+                    const existingIdx = userData.files.findIndex(f => f.name === file.name);
+                    const newFile = { name: file.name, content: content, type: file.type || 'text/plain' };
+                    
+                    if (existingIdx >= 0) userData.files[existingIdx] = newFile;
+                    else userData.files.push(newFile);
+                    
+                    saveData();
+                    renderFileList();
+                };
+                reader.readAsText(file);
+            });
+            input.value = ''; // Reset
+        }
+
+        function createNewFile() {
+            const name = prompt("Enter file name (e.g., about.html):", "new.html");
+            if (name) {
+                userData.files.push({ name: name, content: "\n<h1>New Page</h1>", type: "text/html" });
+                saveData();
+                renderFileList();
+            }
+        }
+
+        function deleteFile(index) {
+            if(confirm("Are you sure?")) {
+                userData.files.splice(index, 1);
+                saveData();
+                renderFileList();
+            }
+        }
+
+        // Editor
+        let currentEditingIndex = -1;
+
+        function openEditor(index) {
+            currentEditingIndex = index;
+            const file = userData.files[index];
+            document.getElementById('editor-filename').innerText = file.name;
+            document.getElementById('code-area').value = file.content;
+            document.getElementById('editor-modal').classList.remove('hidden');
+        }
+
+        function closeEditor() {
+            document.getElementById('editor-modal').classList.add('hidden');
+            currentEditingIndex = -1;
+        }
+
+        function saveFileContent() {
+            if (currentEditingIndex >= 0) {
+                userData.files[currentEditingIndex].content = document.getElementById('code-area').value;
+                saveData();
+                closeEditor();
+                renderFileList();
+            }
+        }
+
+        // --- DOMAIN LOGIC ---
+        function saveDomain() {
+            const domain = document.getElementById('custom-domain-input').value.trim();
+            if (domain.length > 3) {
+                userData.domain = domain;
+                saveData();
+                alert(`Domain ${domain} connected! It will appear in the simulated URL bar.`);
+            } else {
+                alert("Invalid domain");
+            }
+        }
+
+        // --- DEPLOYMENT SIMULATOR ---
+        function startDeployment() {
+            const term = document.getElementById('deploy-logs');
+            const btn = document.getElementById('deploy-btn');
+            
+            term.innerHTML = '';
+            btn.disabled = true;
+            btn.innerText = "Deploying...";
+            userData.isPublished = false;
+
+            const logs = [
+                "Initializing build environment...",
+                "Cloning repository...",
+                "Analysing source code...",
+                userData.mode === 'url' ? `Fetching content from ${userData.importUrl}...` : "Compiling HTML/CSS assets...",
+                "Optimizing images...",
+                "Generating static pages...",
+                "Uploading to Edge Network (Region: us-east-1)...",
+                "Verifying DNS propagation...",
+                "Build Complete."
+            ];
+
+            let i = 0;
+            function printLog() {
+                if (i < logs.length) {
+                    const line = document.createElement('div');
+                    line.className = 'log-line';
+                    line.innerText = `> ${logs[i]}`;
+                    term.appendChild(line);
+                    term.scrollTop = term.scrollHeight; // Auto scroll
+                    i++;
+                    setTimeout(printLog, 600); 
+                } else {
+                    // Done
+                    const success = document.createElement('div');
+                    success.className = 'log-line log-success font-bold';
+                    success.innerText = "> SITE IS LIVE 🚀";
+                    term.appendChild(success);
+                    
+                    userData.isPublished = true;
+                    saveData();
+                    updateUI();
+                    btn.disabled = false;
+                    btn.innerText = "Deploy Again";
+                }
+            }
+            printLog();
+        }
+
+        // --- PREVIEW LOGIC (FIXED) ---
+        function loadPreview() {
+            const iframe = document.getElementById('site-preview-iframe');
+            const urlBar = document.getElementById('preview-url-bar');
+            
+            // 1. Update URL Bar Appearance (Fake Browser)
+            if (userData.domain) {
+                urlBar.innerText = `https://www.${userData.domain}`;
+            } else {
+                urlBar.innerText = `https://preview.customdomainbuilder.com/u/${userData.code}`;
+            }
+
+            // 2. Render Content (Actual Iframe)
+            if (userData.mode === 'url') {
+                // URL MODE
+                if(userData.importUrl) {
+                    iframe.srcdoc = ""; // Clear srcdoc
+                    iframe.src = userData.importUrl;
+                } else {
+                    iframe.src = "";
+                    iframe.srcdoc = "<body style='font-family:sans-serif;text-align:center;padding:20px;color:#fff;background:#0f172a;'><h3>No URL provided.</h3><p>Go to Dashboard > Source Mode</p></body>";
+                }
+            } else {
+                // FILE MODE (HTML/CSS)
+                iframe.src = ""; // Clear src
+                const indexFile = userData.files.find(f => f.name === 'index.html');
+                const cssFile = userData.files.find(f => f.name === 'style.css'); 
+                
+                if (indexFile) {
+                    let htmlContent = indexFile.content;
+                    
+                    // Simple CSS Injection
+                    if (cssFile && !htmlContent.includes(cssFile.name) && !htmlContent.includes('<style>')) {
+                        htmlContent = htmlContent.replace('</head>', `<style>${cssFile.content}</style></head>`);
+                        // Fallback if no head tag
+                        if(!htmlContent.includes('<style>')) {
+                             htmlContent = `<style>${cssFile.content}</style>` + htmlContent;
+                        }
+                    }
+
+                    // WRITE DIRECTLY TO IFRAME (Bypasses Blob URL issues on mobile)
+                    iframe.srcdoc = htmlContent;
+                    
+                } else {
+                    iframe.srcdoc = "<body style='font-family:sans-serif;text-align:center;padding:20px;color:#aaa;background:#0f172a;'><h3>404: index.html not found.</h3><p>Please upload or create an index.html file in the Files tab.</p></body>";
+                }
+            }
+        }
+    </script>
+</body>
+</html>
